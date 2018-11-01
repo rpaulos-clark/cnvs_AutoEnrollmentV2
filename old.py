@@ -25,7 +25,7 @@ def retrieve_all_user_objects(account_number):
         'sort': 'username',
         'order': 'asc',
         'per_page': '100'
-    }
+}
 
     # Pulls information from Canvas into request object r
     r = requests.get(CC_base_url + "/api/v1/accounts/" + str(account_number) + "/users", headers=headers, params=payload)
@@ -51,3 +51,12 @@ def retrieve_all_user_objects(account_number):
            # print(users)
 
     return user_object_list
+#########################################################################################################################
+
+
+def retrieve_user_info(user_id):
+
+    r = requests.get(CC_base_url + "/api/v1/users/" + str(user_id), headers=headers)
+
+    content = r.json()
+    return content
