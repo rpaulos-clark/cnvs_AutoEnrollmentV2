@@ -45,7 +45,7 @@ class CouncilConnect(object):
             Facilitates requests made by CouncilConnect subclasses
         """
 
-        req_session = requests.Session
+        req_session = requests.Session()
         req_session.headers = {'Content-Type': 'application/json', 'Authorization': "Bearer " + cls.cc_token}
         cls.request_session = req_session
 
@@ -58,7 +58,7 @@ class CouncilConnect(object):
         :param params:
         :return: requests Response object
         """
-        return cls.request_session.request(mode, url, params=params)
+        return cls.request_session.request(mode, url, params)
 
     @classmethod
     def extract_json(cls, req):
@@ -75,6 +75,5 @@ class CouncilConnect(object):
             return content
 
         next_url = req.links['next']['url']
-        mode = req.method
-        content += cls.extract_json(cls.request(mode, next_url))
+        content += cls.extract_json(cls.request('GET', next_url))
         return content
