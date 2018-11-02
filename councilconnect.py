@@ -1,4 +1,5 @@
 import smtplib
+import requests
 import os
 import time
 """
@@ -8,10 +9,10 @@ import time
 
 
 class CouncilConnect(object):
-    base_url = None
-    cc_token = None
-    council_headers = None
+    base_url = 'https://councils.clark.edu/'
+    cc_token = os.getenv('CCtoken')
     recipient = None
+    request_session = None
     canvas_account = 1
 
     @classmethod
@@ -28,7 +29,7 @@ class CouncilConnect(object):
 
     @classmethod
     def alert_recipient(cls, email):
-        cls.alert_recipient = email
+        cls.recipient = email
 
     @classmethod
     def url(cls, url):
@@ -37,4 +38,43 @@ class CouncilConnect(object):
     @classmethod
     def token(cls, token):
         cls.cc_token = token
-        cls.council_headers = {'Content-Type': 'application/json', 'Authorization': "Bearer " + token}
+
+    @classmethod
+    def init_session(cls):
+        """
+            Facilitates requests made by CouncilConnect subclasses
+        """
+
+        req_session = requests.Session
+        req_session.headers = {'Content-Type': 'application/json', 'Authorization': "Bearer " + cls.cc_token}
+        cls.request_session = req_session
+
+    @classmethod
+    def request(cls, mode, url, params=None):
+        """
+            So we may benefit from the saved headers
+        :param mode: 'GET', 'POST', etc
+        :param url: Full API url
+        :param params:
+        :return: requests Response object
+        """
+        return cls.request_session.request(mode, url, params=params)
+
+    @classmethod
+    def extract_json(cls, req):
+        """
+        :param req: requests Response object
+        :return: list of all values provided by the server
+        """
+
+        content = req.json()
+        if not isinstance(content, list):
+            content = [content]
+
+        if req.links['current']['url'] == req.links['last']['url']:
+            return content
+
+        next_url = req.links['next']['url']
+        mode = req.method
+        content += cls.extract_json(cls.request(mode, next_url))
+        return content
