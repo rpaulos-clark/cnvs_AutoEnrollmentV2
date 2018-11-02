@@ -12,18 +12,22 @@ from councilconnect import CouncilConnect
 class UserManager(CouncilConnect):
 
     @classmethod
-    def delete_user(cls, ccID):
+    def delete_user(cls, cc_id):
+        cc_id = str(cc_id)
         try:
-            req = Request.request(
-                'delete',
-                super().base_url+'api/v1/accounts/'+super().account()+'/users/',
-                headers=super().council_headers)
+            req = super().request(
+                'DELETE',
+                super().base_url+'api/v1/accounts/'+str(super().canvas_account)+'/users/'+cc_id
+            )
+
             if 200 == req.status_code:
-                print('Successfully deleted')
-            else:
-                ...
+                print('Successfully deleted %s' % cc_id)
+                return
+
+            print('Encountered response code %s while attempting to delete cc_id:%s' % (req.status_code, cc_id))
         except Exception as e:
-            super().alert('Encountered exception {} while deleting user')
+            print('Encountered exception %s while attempting to delete cc_id:%s' % (e, cc_id))
+            super().alert('Encountered exception %s while deleting user cc_id:%s' % (e, cc_id))
 
     @classmethod
     def create_user(cls, pseudonym_unique_id, sis_user_id, user_real_first, user_real_last):
@@ -67,36 +71,33 @@ class UserManager(CouncilConnect):
         }
 
         try:
-            creation_request = Request.request(
-                'post', super().base_url+'api/v1/accounts/'+str(super().canvas_account)+'/users',
-                headers=super().council_headers,
-                params=payload)
-
-            # Placing these here for the benefit of anyone who uses this as a one-off
-            print(user_real_first+' '+user_real_last+' creation status code %s' % creation_request.status_code)
+            creation_request = super().request(
+                'POST', str(super().base_url+'api/v1/accounts/'+str(super().canvas_account))+'/users', params=payload)
             if 200 != creation_request.status_code:
-                super().alert('Failed to create user {} {}'.format(user_real_first, user_real_last))
+                print('Failed to create user {} {} with status code {}'.format(
+                    user_real_first, user_real_last, creation_request.status_code))
+                super().alert('Failed to create user {} {} with status code {}'.format(
+                    user_real_first, user_real_last, creation_request.status_code))
                 return None
-            print(creation_request.json())
-
-            # Placeholder for logging
-            return creation_request  # Expect called to use Request.extract if the status_Code is amenable
+            #/// add logging here
+            return super().extract_json(creation_request)
 
         except Exception as e:
+            print(
+                'Encountered exception <{}> during user creation for {} {}'.format(e, user_real_first, user_real_last))
             super().alert(
-                'Encountered exception {} during user creation for {} {}'.format(e, user_real_first, user_real_last))
-            print('Encountered exception {} during user creation for {} {}'.format(e, user_real_first, user_real_last))
+                'Encountered exception <{}> during user creation for {} {}'.format(e, user_real_first, user_real_last))
             return None
 
     @classmethod
     def search_person_id(cls, person_id):
-        users_req = UserManager.retrieve_users()
-        users = super().extract_json(users_req)
+        users = UserManager.retrieve_users()  # Already a list
 
         # For the benefit of casual users we print the data
         for user in users:
             if user['sis_user_id'] == person_id:
-                print(user)
+                for key, value in user.items():
+                    print(str(key)+':'+str(value))
                 return user
         print('No such user found')
         return None
@@ -117,12 +118,16 @@ class UserManager(CouncilConnect):
             req = super().request(
                 'GET',
                 super().base_url+'api/v1/accounts/'+str(super().canvas_account)+'/users',
-                params=payload)
+                payload)
 
-            return req
+            if 200 != req.status_code:
+                print('Failed to retrieve users. Status code %s' % req.status_code)
+                super().alert('Failed to retrieve_users with status_code %s' % req.status_code)
+                return None
+            return super().extract_json(req)
 
         except Exception as e:
-            print('Encountered exception {} attempting to retrieve user list'.format(e))
+            print('Encountered exception <{}> attempting to retrieve user list'.format(e))
             super().alert('Encountered exception {} retrieving user list'.format(e))
             return None
 
@@ -132,18 +137,23 @@ class UserManager(CouncilConnect):
         :param user_id: unique Council Connect ID number
         :return: requests Response or None upon exception
         """
+        user_id = str(user_id)
 
         try:
             req = super().request('GET', super().base_url+'api/v1/users/'+str(user_id))
+
+            if 200 != req.status_code:
+                print('Failed to retrieve info for user {} with status code {}'.format(user_id, req.status_code))
+                super().alert('Failed to retrieve info for user {} with status code {}'.format(user_id, req.status_code))
+                return None
             content = req.json()
 
             # In case a less-able person is at the helm.
-            for thing in content:
-                print(thing)
-            return req
+            for key, value in content.items():
+                print(str(key)+':'+str(value))
+            return content
 
         except Exception as e:
-            print('Failed to retrieve user info with response code {}'.format(r.status_code))
+            print('Encountered exception <{}> retrieving user info for {}'.format(e, user_id))
             super().alert('Encountered exception {} retrieving user info for {}'.format(e, user_id))
             return None
-
