@@ -17,8 +17,39 @@ class User(CouncilConnect):
         self.sis_user_id = sis_user_id
         self.login_id = login_id
 
+    def edit_login(self, new_login):
 
-    # def edit_login(self):
+        """
+            Modifes what is essentially the username, the field used to log into Council Connect.  A user CAN have
+            multiple logins. This method simply changes the first one it receives. Nothing more
+
+        :param new_login: login that will be used to log into Council Connect. Delete the old.
+        :return: Bool indicating success/failure
+        """
+
+        # First the user's credentials are retrieve so that they may be edited
+        req = super().request('GET', super().base_url+'api/v1/users/'+str(self.cc_id)+'/logins')
+        if 200 == req.status_code:
+            login = req.json()[0]  # Returns list of logins. Only need to modify one (and they should have only one)
+            old_login = login['id']
+
+            params = {
+                'login[unique_id]': new_login
+            }
+
+            # Now the login is updated
+            req = super().request(
+                'PUT',
+                super().base_url+'api/v1/accounts/'+str(super().canvas_account)+'/logins/'+str(old_login),
+                params=params)
+
+            if 200 == req.status_code:
+                self.login_id = new_login
+                #//// Add logging here
+                return True
+
+        super().error_dump('Failed to update login for <{}> with response code <{}>'.format(new_login, req.status_code))
+        return False
 
     def discussion_topics(self, course_id):
         # Lists the Discussion threads in the given course. Used to keep users subscribed and receiving their 'digests'
