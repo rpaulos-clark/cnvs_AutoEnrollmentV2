@@ -1,3 +1,4 @@
+import copy
 import unittest
 import user
 import os
@@ -107,12 +108,23 @@ class TestUser(unittest.TestCase):
         TestUser.user = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
 
     def test_discussion_topics_method(self):
-        person = TestUser.user
+        person = copy.deepcopy(TestUser.user)
         # Pulls discussion topics from the accreditation course
         discussion = person.discussion_topics(15)[0]
         self.assertEqual(True, isinstance(discussion, dict))
         discussions = person.discussion_topics(24)
         self.assertEqual(len(discussions), 0)
+
+    def test_user_edit_login(self):
+        person = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
+        ret = person.edit_login('testosteroniIsKing')
+        self.assertEqual(True, ret)
+        tes = UserManager.search_person_id('@!!$testosteroni')
+        self.assertEqual(tes['sis_login_id'], 'testosteroniIsKing')
+
+    def tearDown(self):
+        person = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
+        person.edit_login('testosteroni@clark.edu')
 
 
 if __name__ == "__main__":
