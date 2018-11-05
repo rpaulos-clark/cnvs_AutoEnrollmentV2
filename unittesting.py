@@ -1,6 +1,5 @@
 import unittest
 import os
-from request import Request
 from usermanager import UserManager
 import old
 
@@ -12,6 +11,10 @@ headers = {'Content-Type': 'application/json', 'Authorization': "Bearer " + CCto
 
 
 class TestCouncilConnect(unittest.TestCase):
+
+    def setUp(self):
+        CouncilConnect.alert_recipient('rpaulos@clark.edu')
+        CouncilConnect.init_session()
 
     def test_alert(self):
         CouncilConnect.alert_recipient('rpaulos@clark.edu')
@@ -32,7 +35,18 @@ class TestCouncilConnect(unittest.TestCase):
 
     def test_account_method(self):
         CouncilConnect.account(5)
-        self.assertEqual(CouncilConnect.canvas_account, 5)
+        self.assertEqual(CouncilConnect.canvas_account, '5')
+
+    def test_is_published_method(self):
+        # Guided Pathways Resource Center. Should be published
+        self.assertEqual(True, CouncilConnect.is_published(13))
+
+        # MyClark Course. Should be unpublished
+        self.assertEqual(False, CouncilConnect.is_published(24))
+
+    def test_is_discussion_hidden_method(self):
+        # Current (as of 11/5/2018) Council course
+        self.assertEqual(False, CouncilConnect.is_discussion_hidden(27))
 
     def tearDown(self):
         CouncilConnect.base_url = 'https://councils.clark.edu/'
@@ -74,6 +88,11 @@ class TestUserManager(unittest.TestCase):
         UserManager.delete_user(3081)
         search = UserManager.search_person_id(3081)
         self.assertEqual(None, search)
+
+    def test_create_enrollment(self):
+        # Enrolling Ryan Paulos into the accreditation course with 'Employee' permissions
+        req = UserManager.create_enrollment(12, 15, 'TeacherEnrollment', 13)
+        self.assertEqual(200, req.status_code)
 
     def tearDown(self):
         UserManager.create_user('testosteroni', '@!!$testosteroni', 'test', 'osterone')
