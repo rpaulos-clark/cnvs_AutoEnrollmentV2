@@ -1,4 +1,3 @@
-from request import Request
 from councilconnect import CouncilConnect
 
 # @TODO: Search for Placeholder comment to insert logging code once it exists
@@ -10,6 +9,33 @@ from councilconnect import CouncilConnect
 
 
 class UserManager(CouncilConnect):
+
+    @classmethod
+    def create_enrollment(cls, cc_id, course_id, enrollment_type, role_id):
+        payload = {
+            'enrollment[user_id]': cc_id,
+            'enrollment[type]': enrollment_type,
+            'enrollment[role_id]': role_id,
+            'enrollment[enrollment_state]': 'active',
+            # 'enrollment[notify]': 'true' # Too many notifications. No longer sending.
+        }
+
+        try:
+            enrollment_request = super().request(
+                'POST',
+                super().base_url+'api/v1/courses/'+str(course_id)+'/enrollments',
+                params=payload)
+
+            if 200 != enrollment_request.status_code:
+                super().error_dump(
+                    'Failed to create enrollment for id:<{}> with status code <{}>'.format(
+                        cc_id, enrollment_request.status_code))
+            else:
+                print('Successfully created new enrollment for id:{} in course {}'.format(cc_id, course_id))
+            return enrollment_request
+        except Exception as e:
+            super().error_dump('Encountered exception <{}> while creating enrollment for id:{}'.format(e, cc_id))
+            return 0
 
     @classmethod
     def delete_user(cls, cc_id):
@@ -26,8 +52,7 @@ class UserManager(CouncilConnect):
 
             print('Encountered response code %s while attempting to delete cc_id:%s' % (req.status_code, cc_id))
         except Exception as e:
-            print('Encountered exception %s while attempting to delete cc_id:%s' % (e, cc_id))
-            super().alert('Encountered exception %s while deleting user cc_id:%s' % (e, cc_id))
+            super().error_dump('Encountered exception %s while attempting to delete cc_id:%s' % (e, cc_id))
 
     @classmethod
     def create_user(cls, pseudonym_unique_id, sis_user_id, user_real_first, user_real_last):
@@ -74,18 +99,14 @@ class UserManager(CouncilConnect):
             creation_request = super().request(
                 'POST', str(super().base_url+'api/v1/accounts/'+str(super().canvas_account))+'/users', params=payload)
             if 200 != creation_request.status_code:
-                print('Failed to create user {} {} with status code {}'.format(
-                    user_real_first, user_real_last, creation_request.status_code))
-                super().alert('Failed to create user {} {} with status code {}'.format(
+                super().error_dump('Failed to create user {} {} with status code {}'.format(
                     user_real_first, user_real_last, creation_request.status_code))
                 return None
             #/// add logging here
-            return super().extract_json(creation_request)
+            return creation_request.json()
 
         except Exception as e:
-            print(
-                'Encountered exception <{}> during user creation for {} {}'.format(e, user_real_first, user_real_last))
-            super().alert(
+            super().error_dump(
                 'Encountered exception <{}> during user creation for {} {}'.format(e, user_real_first, user_real_last))
             return None
 
@@ -121,14 +142,12 @@ class UserManager(CouncilConnect):
                 payload)
 
             if 200 != req.status_code:
-                print('Failed to retrieve users. Status code %s' % req.status_code)
-                super().alert('Failed to retrieve_users with status_code %s' % req.status_code)
+                super().error_dump('Failed to retrieve users. Status code %s' % req.status_code)
                 return None
             return super().extract_json(req)
 
         except Exception as e:
-            print('Encountered exception <{}> attempting to retrieve user list'.format(e))
-            super().alert('Encountered exception {} retrieving user list'.format(e))
+            super().error_dump('Encountered exception <{}> attempting to retrieve user list'.format(e))
             return None
 
     @classmethod
@@ -143,8 +162,8 @@ class UserManager(CouncilConnect):
             req = super().request('GET', super().base_url+'api/v1/users/'+str(user_id))
 
             if 200 != req.status_code:
-                print('Failed to retrieve info for user {} with status code {}'.format(user_id, req.status_code))
-                super().alert('Failed to retrieve info for user {} with status code {}'.format(user_id, req.status_code))
+                super().error_dump(
+                    'Failed to retrieve info for user <{}> with status code <{}>'.format(user_id, req.status_code))
                 return None
             content = req.json()
 
@@ -154,6 +173,5 @@ class UserManager(CouncilConnect):
             return content
 
         except Exception as e:
-            print('Encountered exception <{}> retrieving user info for {}'.format(e, user_id))
-            super().alert('Encountered exception {} retrieving user info for {}'.format(e, user_id))
+            super().error_dump('Encountered exception <{}> retrieving user info for <{}>'.format(e, user_id))
             return None
