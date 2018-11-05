@@ -6,8 +6,8 @@ class PyDB(object):
     def __init__(self, server, database):
         self.connection = pyodbc.connect(
             r'DRIVER={ODBC DRiver 11 for SQL Server};'
-            r'SERVER='+server+';'
-            r'DATABASE='+database+';'
+            r'SERVER='+str(server)+';'
+            r'DATABASE='+str(database)+';'
             r'Trusted_connection=yes;'
         )
         self.cursor = self.connection.cursor()
@@ -20,6 +20,6 @@ class PyDB(object):
 
     def call_procedure(self, procedure):
         data_cursor = self.cursor.execute(
-            "{CALL"+procedure+"}"
+            "{CALL"+str(procedure)+"}"
         )
         return data_cursor.fetchall()
