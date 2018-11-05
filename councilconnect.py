@@ -1,7 +1,6 @@
 import smtplib
 import requests
 import os
-import time
 """
     Hope: this class will be a superclass for the top-level objects interacting with Council Connect. This will provide
     the subclasses the inherent ability to do things like send alert emails when something fails, etc.
@@ -13,7 +12,43 @@ class CouncilConnect(object):
     cc_token = os.getenv('CCtoken')
     recipient = None
     request_session = None
-    canvas_account = 1
+    canvas_account = '1'
+
+    @classmethod
+    def is_discussion_hidden(cls, course_id):
+
+        req = cls.request('GET', cls.base_url+'api/v1/courses/'+str(course_id)+'/tabs')
+        content = cls.extract_json(req)
+        for tab in content:
+            if tab['id'] == 'discussions':
+                try:
+                    if tab['hidden']:
+                        return True
+                    else:
+                        return False
+                except KeyError:
+                    return False
+
+    @classmethod
+    def is_published(cls, course_id):
+        """
+            Determines the published state of the given course
+        :return: Bool
+        """
+
+        payload = {
+            'published': 'true'
+        }
+        req = cls.request('GET', cls.base_url+'api/v1/accounts/'+str(cls.canvas_account)+'/courses', params=payload)
+
+        if 200 == req.status_code:
+            content = req.json()
+            for course in content:
+                if int(course['id']) == int(course_id):
+                    return True
+            return False
+
+        cls.error_dump('Status code <{}> in is_published for course <{}>'.format(req.status_code, course_id))
 
     @classmethod
     def alert(cls, message):
@@ -25,7 +60,7 @@ class CouncilConnect(object):
 
     @classmethod
     def account(cls, account):
-        CouncilConnect.canvas_account = account
+        CouncilConnect.canvas_account = str(account)
 
     @classmethod
     def alert_recipient(cls, email):
@@ -71,9 +106,17 @@ class CouncilConnect(object):
         if not isinstance(content, list):
             content = [content]
 
+        if not req.links:
+            return content
+
         if req.links['current']['url'] == req.links['last']['url']:
             return content
 
         next_url = req.links['next']['url']
         content += cls.extract_json(cls.request('GET', next_url))
         return content
+
+    @classmethod
+    def error_dump(cls, message):
+        print(message)
+        cls.alert(message)
