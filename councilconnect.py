@@ -10,7 +10,7 @@ import os
 class CouncilConnect(object):
     base_url = 'https://councils.clark.edu/'
     cc_token = os.getenv('CCtoken')
-    recipient = None
+    recipient = 'rpaulos@clark.edu'
     request_session = None
     canvas_account = '1'
 
