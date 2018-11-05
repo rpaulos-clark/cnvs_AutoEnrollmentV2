@@ -16,6 +16,12 @@ class CouncilConnect(object):
 
     @classmethod
     def is_discussion_hidden(cls, course_id):
+        """
+            Basically checking if discussions are enabled or not(hidden)
+
+        :param course_id: Course for which discussions status is checked
+        :return: Bool indicating whether the discussions are hidden
+        """
 
         req = cls.request('GET', cls.base_url+'api/v1/courses/'+str(course_id)+'/tabs')
         content = cls.extract_json(req)
@@ -60,24 +66,47 @@ class CouncilConnect(object):
 
     @classmethod
     def account(cls, account):
+        """
+            In case the 'account' is no longer 1. 'account' here refers to some division feature within Canvas to
+            allow different aspects of Canvas to operate in isolation. This will probably never be necessary.
+        :param account: integer or string rep of an int
+        :return: None
+        """
         CouncilConnect.canvas_account = str(account)
 
     @classmethod
     def alert_recipient(cls, email):
+        """
+            To update the email account that will be blessed with lots of error alert messages
+        :param email: Email address which will receive the error notifications when something goes wrong
+        :return: None
+        """
         cls.recipient = email
 
     @classmethod
     def url(cls, url):
+        """
+            Method to update the base_url used when forming API calls. Seems unlikely to change.
+        :param url: the URL to the login screen of Council Connect
+        :return: None
+        """
         cls.base_url = url
 
     @classmethod
     def token(cls, token):
+        """
+            Allows for updating the access token (provided by and created through Canvas) used to make API calls.
+            REQUIRED
+
+        :param token: Access token permitted authorization of API calls
+        :return:  None
+        """
         cls.cc_token = token
 
     @classmethod
     def init_session(cls):
         """
-            Facilitates requests made by CouncilConnect subclasses
+            Facilitates requests made by CouncilConnect subclasses. MUST BE CALLED before attempting to do anything
         """
 
         req_session = requests.Session()
@@ -118,5 +147,10 @@ class CouncilConnect(object):
 
     @classmethod
     def error_dump(cls, message):
+        """
+            Duplicates message for both terminal printing and email alerting
+        :param message: Failure message string
+        :return: None
+        """
         print(message)
         cls.alert(message)
