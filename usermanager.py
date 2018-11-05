@@ -12,6 +12,15 @@ class UserManager(CouncilConnect):
 
     @classmethod
     def create_enrollment(cls, cc_id, course_id, enrollment_type, role_id):
+        """
+
+        :param cc_id: Council Connect ID
+        :param course_id: Course into which the user is being enrolled
+        :param enrollment_type: The permission type the role_id is based upon (e.g. 'StudentEnrollment')
+        :param role_id: integer corresponding to a permission role
+        :return: requests Response object or 0 upon exception
+        """
+
         payload = {
             'enrollment[user_id]': cc_id,
             'enrollment[type]': enrollment_type,
@@ -39,6 +48,13 @@ class UserManager(CouncilConnect):
 
     @classmethod
     def delete_user(cls, cc_id):
+        """
+            Deactivates the given account. Can be reactivated, although at least the enrollments are lost.
+
+        :param cc_id: Council Connect User ID
+        :return: None
+        """
+
         cc_id = str(cc_id)
         try:
             req = super().request(
@@ -112,6 +128,14 @@ class UserManager(CouncilConnect):
 
     @classmethod
     def search_person_id(cls, person_id):
+        """
+            Retrieves all user objects from Council Connect and then searches through the list of users to find
+            the given person.
+
+        :param person_id: Person_ID field for employees within prometheus. Corresponds to sis_user_id in canvas terms
+        :return: Canvas user object (dictionary) or None if no match is found
+        """
+
         users = UserManager.retrieve_users()  # Already a list
 
         # For the benefit of casual users we print the data
