@@ -1,4 +1,5 @@
 import unittest
+import user
 import os
 from usermanager import UserManager
 import old
@@ -13,16 +14,16 @@ headers = {'Content-Type': 'application/json', 'Authorization': "Bearer " + CCto
 class TestCouncilConnect(unittest.TestCase):
 
     def setUp(self):
-        CouncilConnect.alert_recipient('rpaulos@clark.edu')
+        CouncilConnect.alert_recipient('councilconnecttest@gmail.com')
         CouncilConnect.init_session()
 
     def test_alert(self):
-        CouncilConnect.alert_recipient('rpaulos@clark.edu')
+        CouncilConnect.alert_recipient('councilconnecttest@gmail.com')
         CouncilConnect.alert('UnitTesting')
 
     def test_alert_recipients_added(self):
-        CouncilConnect.alert_recipient('rpaulos@clark.edu')
-        rep_list = 'rpaulos@clark.edu'
+        CouncilConnect.alert_recipient('councilconnecttest@gmail.com')
+        rep_list = 'councilconnecttest@gmail.com'
         self.assertEqual(rep_list, CouncilConnect.recipient)
 
     def test_url_method(self):
@@ -47,6 +48,7 @@ class TestCouncilConnect(unittest.TestCase):
     def test_is_discussion_hidden_method(self):
         # Current (as of 11/5/2018) Council course
         self.assertEqual(False, CouncilConnect.is_discussion_hidden(27))
+        self.assertEqual(True, CouncilConnect.is_discussion_hidden(15))
 
     def tearDown(self):
         CouncilConnect.base_url = 'https://councils.clark.edu/'
@@ -81,8 +83,6 @@ class TestUserManager(unittest.TestCase):
         ret = UserManager.search_person_id('1EF69564-83D7-463A-B3F7-F1CFAA076554')
         self.assertEqual(ret['id'], 12)
 
-        ret = UserManager.search_person_id('@!!$testosteroni')
-
     def test_delete_person(self):
         # user is created
         UserManager.delete_user(3081)
@@ -96,6 +96,23 @@ class TestUserManager(unittest.TestCase):
 
     def tearDown(self):
         UserManager.create_user('testosteroni', '@!!$testosteroni', 'test', 'osterone')
+
+
+class TestUser(unittest.TestCase):
+
+    user = None
+
+    def setUp(self):
+        CouncilConnect.init_session()
+        TestUser.user = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
+
+    def test_discussion_topics_method(self):
+        person = TestUser.user
+        # Pulls discussion topics from the accreditation course
+        discussion = person.discussion_topics(15)[0]
+        self.assertEqual(True, isinstance(discussion, dict))
+        discussions = person.discussion_topics(24)
+        self.assertEqual(len(discussions), 0)
 
 
 if __name__ == "__main__":
