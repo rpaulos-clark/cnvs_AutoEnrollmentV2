@@ -105,10 +105,13 @@ class TestUser(unittest.TestCase):
 
     def setUp(self):
         CouncilConnect.init_session()
-        TestUser.user = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
+        TestUser.user = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
+        UserManager.create_enrollment(3081, 15, 'TeacherEnrollment', '13')
+        UserManager.create_enrollment(3081, 1, 'TeacherEnrollment', '13')
 
     def test_discussion_topics_method(self):
-        person = copy.deepcopy(TestUser.user)
+        person = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
+
         # Pulls discussion topics from the accreditation course
         discussion = person.discussion_topics(15)[0]
         self.assertEqual(True, isinstance(discussion, dict))
@@ -116,15 +119,30 @@ class TestUser(unittest.TestCase):
         self.assertEqual(len(discussions), 0)
 
     def test_user_edit_login(self):
-        person = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
+        person = copy.deepcopy(TestUser.user)
         ret = person.edit_login('testosteroniIsKing')
         self.assertEqual(True, ret)
         tes = UserManager.search_person_id('@!!$testosteroni')
         self.assertEqual(tes['sis_login_id'], 'testosteroniIsKing')
 
+    def test_user_replace_comm_channel(self):
+        person = copy.deepcopy(TestUser.user)
+        ret = person.replace_comm_channel('KingJames@clark.edu')
+        self.assertEqual('KingJames@clark.edu', ret['address'])
+
+    def test_user_update_enrollments(self):
+        person = copy.deepcopy(TestUser.user)
+        person.update_enrollments()
+
+        enrolled = [1, 15]
+        self.assertEqual(len(person.enrollments), 2)
+        for course in person.enrollments:
+            self.assertIn(course, enrolled)
+
     def tearDown(self):
         person = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
         person.edit_login('testosteroni@clark.edu')
+        person.replace_comm_channel('testosteroni@clark.edu')
 
 
 if __name__ == "__main__":
