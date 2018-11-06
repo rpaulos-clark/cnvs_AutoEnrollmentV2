@@ -5,7 +5,7 @@ from councilconnect import CouncilConnect
 # discussionSubscriptions, replaceCommChannel, editLogin, credentialCheck,
 
 
-""" ListDiscussionTopics, editLogin, replaceCommChannel, discussionSubscriptions, updateEnrollments
+"""   discussionSubscriptions
 """
 
 
@@ -16,12 +16,82 @@ class User(CouncilConnect):
         self.name = name
         self.sis_user_id = sis_user_id
         self.login_id = login_id
+        self.enrollments = []  # Courses the user in enrolled in. Populated by update_enrollments()
+
+    def update_enrollments(self):
+        """
+            updates self.enrollments with integer values corresponding to the course_id of each course the user is
+            enrolled in.
+
+        :return: None
+        """
+        # Retrieve the enrollments
+        req = super().request('GET', super().base_url+'api/v1/users/{}/enrollments'.format(self.cc_id))
+        if 200 != req.status_code:
+            super().error_dump(
+                'Failed to update enrollments for <{}> with status code <{}>'.format(self.name, req.status_code))
+            return
+
+        # Update self
+        enrollments = super().extract_json(req)
+        for enrollment in enrollments:
+            self.enrollments.append(enrollment['course_id'])
+
+    def replace_comm_channel(self, replacement_email):
+        """
+            Deletes all (though there should be only one) communication methods a user has within Council Connect
+            and replaces them with the given email address. All notifications are now sent to this address.
+
+            Support for modalities outside of email were never considered.
+
+        :param replacement_email: Address Council Connect will now send notifications, etc. to
+        :return: Canvas CommunicationChannel upon success, otherwise None
+        """
+        # Retrieves list of comm channels
+        req = super().request('GET', super().base_url+'api/v1/users/'+str(self.cc_id)+'/communication_channels')
+
+        if 200 != req.status_code:
+            super().error_dump(
+                'Failed to retrieve comm channels for <{}> with status code <{}>'.format(self.name, req.status_code))
+            return
+
+        chans = req.json()  # The list of communication channels, received as dictionaries
+
+        # Delete all comm channels
+        for channel in chans:
+            comm_id = channel['id']
+            req = super().request(
+                'DELETE', super().base_url+'api/v1/users/'+str(self.cc_id)+'/communication_channels/'+str(comm_id))
+
+            if 200 != req.status_code:
+                super().error_dump(
+                    'Error deleting comm channel for <{}> with status code <{}>'.format(self.name, req.status_code))
+                return
+
+        # Now for the creation of the new comm channel
+        payload = {
+            'communication_channel[address]': replacement_email,
+            'communication_channel[type]': 'email',
+            'skip_confirmation': 'True'
+        }
+
+        # Request for creation
+        req = super().request(
+            'POST',
+            super().base_url+"api/v1/users/{}/communication_channels".format(self.cc_id),
+            params=payload)
+
+        if 200 == req.status_code:
+            return req.json()
+        super().error_dump(
+            'Failed to create new comm channel for <{}> with response code <{}>'.format(self.name, req.status_code))
 
     def edit_login(self, new_login):
 
         """
             Modifes what is essentially the username, the field used to log into Council Connect.  A user CAN have
-            multiple logins. This method simply changes the first one it receives. Nothing more
+            multiple logins. This method simply changes the first one it receives. Nothing more.
+
 
         :param new_login: login that will be used to log into Council Connect. Delete the old.
         :return: Bool indicating success/failure
@@ -73,6 +143,4 @@ class User(CouncilConnect):
 
         super().error_dump('Status code <{}> while retrieving discussions for <{}>'.format(req.status_code, self.name))
         return None
-
-
 
