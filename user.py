@@ -11,12 +11,58 @@ from councilconnect import CouncilConnect
 
 class User(CouncilConnect):
 
+    inaccessible_discussions = []  # Will be skipped when
+
     def __init__(self, cc_id, name, sis_user_id, login_id):
         self.cc_id = cc_id
         self.name = name
         self.sis_user_id = sis_user_id
         self.login_id = login_id
         self.enrollments = []  # Courses the user in enrolled in. Populated by update_enrollments()
+
+    def list_discussion_topics(self, course_id):
+        """
+            Helper subroutin for discussion_subscription method
+        :param course_id: int representation of the desired canvas course
+        :return: List of discussions (threads) that the user is subscribed to, or None upon failure
+        """
+
+        payload = {
+            'order_by': 'title',
+            'scope': 'unlocked',
+            'as_user_id': 'sis_user_id:{}'.format(self.sis_user_id)  # We need the details from the user's perspective
+        }
+
+        req = super().request(
+            'GET', super().base_url+'api/v1/courses/{}/discussion_topics'.format(course_id), params=payload)
+
+        if 200 != req.status_code:
+            super().error_dump(
+                'Failed to retrieve discussions for <{}> with status code <{}>'.format(self.name, req.status_code))
+            return None
+        content = super().extract_json(req)
+        discussions = []
+
+        for post in content:
+            discussions.append(post)
+
+        return discussions
+
+    def is_subscribable(self, course_id):
+        """
+            Helper subroutine for discussion_subscription method. Filters out scenarios in which no discussion topics
+            will be returned by an API call.
+        :param course_id: Int value of the corresponding course
+        :return: Bool
+        """
+        if course_id in User.inaccessible_discussions:
+            return False
+        if not super().is_published(course_id):
+            return False
+        if super().is_discussion_hidden(course_id):
+            return False
+
+        return True
 
     def update_enrollments(self):
         """
