@@ -139,6 +139,24 @@ class TestUser(unittest.TestCase):
         for course in person.enrollments:
             self.assertIn(course, enrolled)
 
+    def test_user_list_discussion_topics(self):
+        person = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
+
+        # ctc course that has no discussions so we are expecting an empty list.
+        discussions = person.list_discussion_topics(24)
+        self.assertIsInstance(discussions, list)
+
+    def test_user_is_subscribable(self):
+        person = user.User(12, 'Ryan Paulos', '1EF69564-83D7-463A-B3F7-F1CFAA076554', 'rpaulos@clark.edu')
+
+        # Current Council Connect course (as of 11-6-18)
+        is_sub = person.is_subscribable(27)
+        self.assertEqual(is_sub, True)
+
+        # Unpublished MyClark course
+        not_sub = person.is_subscribable(24)
+        self.assertEqual(not_sub, False)
+
     def tearDown(self):
         person = user.User(3081, 'test osterone', '@!!$testosteroni', 'testosteroni@clark.edu')
         person.edit_login('testosteroni@clark.edu')
