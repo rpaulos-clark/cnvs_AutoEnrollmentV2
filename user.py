@@ -18,11 +18,49 @@ class User(CouncilConnect):
         self.name = name
         self.sis_user_id = sis_user_id
         self.login_id = login_id
-        self.enrollments = []  # Courses the user in enrolled in. Populated by update_enrollments()
+        self.enrollments = []  # Ints of courses the user is enrolled in. Populated by update_enrollments()
+
+    def discussion_subscription(self):
+        """
+             Subscribes user to all of the open discussions for courses in which they are enrolled.
+        :return: None
+        """
+        self.update_enrollments()  # Ensure we have the entire list of user's courses
+
+        # Like and subscribe
+        for course in self.enrollments:
+
+            # If inaccessible
+            if not self.is_subscribable(course):
+                User.inaccessible_discussions.append(course)
+
+            # Discussions are accessible
+            else:
+                course_discussions = self.list_discussion_topics(course)
+
+                if course_discussions is not None:  # There are discussions that can be subscribed to
+
+                    # So subscribe to them all
+                    for discussion in course_discussions:
+                        if not discussion['subscribed']:  # unless the user is already subscribed
+
+                            payload = {
+                                'as_user_id': 'sis_user_id:{}'.format(self.sis_user_id)
+                            }
+                            req = super().request(
+                                'PUT',
+                                super().base_url+'api/v1/courses/{}/discussion_topics/{}/subscribed'.format(
+                                    course, discussion['id']),
+                                params=payload)
+
+                            if req.status_code != 200 and req.status_code != 204:
+                                super().error_dump(
+                                    'Failed to subscribe <{}> to course <{}> with status code <{}>'.format(
+                                        self.name, course, req.status_code))
 
     def list_discussion_topics(self, course_id):
         """
-            Helper subroutin for discussion_subscription method
+            Helper subroutine for discussion_subscription method
         :param course_id: int representation of the desired canvas course
         :return: List of discussions (threads) that the user is subscribed to, or None upon failure
         """
